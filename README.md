@@ -79,7 +79,7 @@ min     0.00
 ```
 Isso pode ser resolvido da seguinte maneira :
 ```python
-# convertendo to categórico
+# convertendo para categórico
 df["marriage_status"] = df["marriage_status"].astype('category')
 df.describe()
 
@@ -199,10 +199,165 @@ ___
 
 # Problemas em dados categóricos e tipo texto
 
-### 
+### Erros de entrada
 
-###
+Podemos ter dados categóricos inconsistentes por estarem assumindo valores que não deveriam, valores diferentes dos possíveis para determinada categoria. 
 
+```python
+# Read study data and print it
+study_data = pd.read_csv('study.csv') study_data
+
+    name        birthday    blood_type 
+1   Beth        2019-10-20      B- 
+2   Ignatius    2020-07-08      A- 
+3   Paul        2019-08-12      O+ 
+4   Helen       2019-03-17      O- 
+5   Jennifer    2019-12-17      Z+ 
+6   Kennedy     2020-04-27      A+ 
+7   Keith       2019-04-19      AB+
+
+# Correct possible blood types
+categories
+
+    blood_type 
+1   O- 
+2   O+    
+3   A- 
+4   A+ 
+5   B+ 
+6   B- 
+7   AB+ 
+8   AB-
+```
+No exemplo acima podemos obervar que há um registro com um registro na coluna <code>blood_type</code> incorreto : Z+. É uma boa prática, sempre que possível, manter um registro de todos os possíveis valores de dados categóricos, pois isso facilita o tratamento destas inconsitências.
+
+**encontrando categorias inconsistentes**
+
+```python
+inconsistent_categories = set(study_data['blood_type']).difference(categories['blood_type'])
+print(inconsistent_categories)
+
+{Z+}
+
+# Get and print rows with inconsistent categories
+inconsistent_rows = study_data['blood_type'].isin(inconsistent_categories)
+study_data[inconsistent_rows]
+
+    name        birthday    blood_type
+5   Jennifer    2019-12-17  Z+
+```
+**filtrando categorias inconsistentes**    
+```python
+inconsistent_categories = set(study_data['blood_type']).difference(categories['blood_type'])
+inconsistent_rows = study_data['blood_type'].isin(inconsistent_categories)
+inconsistent_data = study_data[inconsistent_rows]
+# Drop inconsistent categories and get consistent data only
+consistent_data = study_data[~inconsistent_rows] # operador ~ -> not 
+
+    name        birthday        blood_type
+1   Beth        2019-10-20      B-
+2   Ignatius    2020-07-08      A-
+3   Paul        2019-08-12      O+
+4   Helen       2019-03-17      O-
+```
+### Variações categóricas
+Em alguns casos podemos observar uma grande quantidade de categorias, que podem ser colapsadas em uma apenas.
+
+É um problema comum termos valores categóricos ligeiramente diferentes por conta de letras maiúsculas e minúsculas. Para lidarmos com isto, podemos optar entre converter todas as letras para caixa alta ou caixa baixa.
+```python
+# Get marriage status column
+marriage_status = demographics['marriage_status']
+marriage_status.value_counts()
+
+unmarried 352
+married 268
+MARRIED 204
+UNMARRIED 176
+dtype: int64
+
+# Get value counts on DataFrame
+marriage_status.groupby('marriage_status').count()
+
+                    household_income    gender
+marriage_status
+MARRIED                 204             204
+UNMARRIED               176             176
+married                 268             268
+unmarried               352             352
+
+# Capitalize
+marriage_status['marriage_status'] = marriage_status['marriage_status'].str.upper()
+marriage_status['marriage_status'].value_counts()
+
+UNMARRIED 528
+MARRIED 472
+
+# Lowercase
+marriage_status['marriage_status'] = marriage_status['marriage_status'].str.lower()
+marriage_status['marriage_status'].value_counts()
+
+unmarried 528
+married 472
+```
+Outro problema encontrado é a presença do caracter espaço no preenchimento das categorias.
+
+```python
+# Get marriage status column
+marriage_status = demographics['marriage_status']
+marriage_status.value_counts()
+
+ unmarried 352
+unmarried 268
+married 204
+married 176
+dtype: int64
+
+# Strip all spaces
+demographics = demographics['marriage_status'].str.strip()
+demographics['marriage_status'].value_counts()
+
+unmarried 528
+married 472
+```
+
+**colapsando dados em categorias**
+Podemos criar subgrupos de categorias a partir dos dados. Isto pode ser feitos utilizando as funções <code>qcut</code> ou <code>cut</code>.
+
+```python
+# Using qcut()
+import pandas as pd
+group_names = ['0-200K', '200K-500K', '500K+']
+demographics['income_group'] = pd.qcut(demographics['household_income'], q = 3,labels = group_names)
+# Print income_group column
+demographics[['income_group', 'household_income']]
+
+    category    household_income
+0   200K-500K   189243
+1   500K+       778533
+```
+A primeira linha não reflete corretamente a subcategoria por que não definimos o range dos dados. Isto pode ser feito com a função <code>cut</code>.
+
+```python
+# Using cut() - create category ranges and names
+ranges = [0,200000,500000,np.inf]
+group_names = ['0-200K', '200K-500K', '500K+']
+# Create income group column
+demographics['income_group'] = pd.cut(demographics['household_income'], bins=ranges,labels=group_names)
+demographics[['income_group', 'household_income']]
+
+    category    Income
+0   0-200K      189243
+1   500K+       778533
+```
+Podemos também reduzir o número de categorias :
+```python
+# Create mapping dictionary and replace
+mapping = {'Microsoft':'DesktopOS', 'MacOS':'DesktopOS', 'Linux':'DesktopOS','IOS':'MobileOS', 'Android':'MobileOS'}
+devices['operating_system'] = devices['operating_system'].replace(mapping)
+devices['operating_system'].unique()
+
+array(['DesktopOS', 'MobileOS'], dtype=object
+```
 ###
 
 ___
