@@ -358,13 +358,201 @@ devices['operating_system'].unique()
 
 array(['DesktopOS', 'MobileOS'], dtype=object
 ```
-###
+### Limpando dados em texto
 
+Os erros mais comuns envonvendo dados do tipo texto são:
+
+* inconsistência de dados ( CPF com ou sem caracteres . e - )
+* violação de tamanho fixado ( senhas com número mínimo de caracteres, por exemplo )
+* erros de digitação 
+
+```python
+phones = pd.read_csv('phones.csv')
+print(phones)
+
+    Full name           Phone number
+0   Noelani A. Gray     001-702-397-5143
+1   Myles Z. Gomez      001-329-485-0540
+2   Gil B. Silva        001-195-492-2338
+3   Prescott D. Hardin +1-297-996-4904
+4   Benedict G. Valdez  001-969-820-3536
+5   Reece M. Andrews    4138
+6   Hayfa E. Keith      001-536-175-8444
+7   Hedley I. Logan     001-681-552-1823
+8   Jack W. Carrillo    001-910-323-5265
+9   Lionel M. Davis     001-143-119-9210
+
+# corrigindo os problemas encontrados acima : 
+
+# Replace "+" with "00"
+phones["Phone number"] = phones["Phone number"].str.replace("+","00") 
+phones
+
+    Full name           Phone number 
+0   Noelani A. Gray     001-702-397-5143 
+1   Myles Z. Gomez      001-329-485-0540 
+2   Gil B. Silva        001-195-492-2338 
+3   Prescott D. Hardin  001-297-996-4904 
+4   Benedict G. Valdez  001-969-820-3536 
+5   Reece M. Andrews        4138 
+6   Hayfa E. Keith      001-536-175-8444 
+7   Hedley I. Logan     001-681-552-1823 
+8   Jack W. Carrillo    001-910-323-5265 
+9   Lionel M. Davis     001-143-119-9210
+
+# Replace "-" with nothing
+phones["Phone number"] = phones["Phone number"].str.replace("-","") 
+phones
+
+    Full name           Phone number 
+0   Noelani A. Gray     0017023975143 
+1   Myles Z. Gomez      0013294850540 
+2   Gil B. Silva        0011954922338 
+3   Prescott D. Hardin  0012979964904 
+4   Benedict G. Valdez  0019698203536 
+5   Reece M. Andrews        4138 
+6   Hayfa E. Keith      0015361758444 
+7   Hedley I. Logan     0016815521823 
+8   Jack W. Carrillo    0019103235265 
+9   Lionel M. Davis     0011431199210
+
+# Replace phone numbers with lower than 10 digits to NaN
+digits = phones['Phone number'].str.len()
+phones.loc[digits <10,"Phone number"] = np.nan
+phones
+
+    Full name           Phone number 
+0   Noelani A. Gray     0017023975143 
+1   Myles Z. Gomez      0013294850540 
+2   Gil B. Silva        0011954922338 
+3   Prescott D. Hardin  0012979964904 
+4   Benedict G. Valdez  0019698203536 
+5   Reece M. Andrews        NaN 
+6   Hayfa E. Keith      0015361758444 
+7   Hedley I. Logan     0016815521823 
+8   Jack W. Carrillo    0019103235265 
+9   Lionel M. Davis     0011431199210
+
+# Find length of each row in Phone number column
+sanity_check = phone['Phone number'].str.len()
+# Assert minmum phone number length is 10
+assert sanity_check.min() >= 10
+# Assert all numbers do not have "+" or "-"
+assert phone['Phone number'].str.contains("+|-").any() == False
+
+```
+Caso nos deparemos com padrões mais complexos podemos fazer uso de _regular expressions_ , que permitem identificar padrões.
+
+```python
+phones.head()
+
+    Full name           Phone number
+0   Olga Robinson       +(01706)-25891
+1   Justina Kim         +0500-571437
+2   Tamekah Henson      +0800-1111
+3   Miranda Solis       +07058-879063
+4   Caldwell Gilliam    +(016977)-8424
+
+# Replace letters with nothing
+# o padrão no método str.replace informa ao Pandas para substituir qualquer valor diferente de dígito com vazio
+phones['Phone number'] = phones['Phone number'].str.replace(r'\D+', '')
+phones.head()
+
+    Full name           Phone number
+0   Olga Robinson       0170625891
+1   Justina Kim         0500571437
+2   Tamekah Henson      08001111
+3   Miranda Solis       07058879063
+4   Caldwell Gilliam    0169778424
+```
 ___
 
 # Problemas avançados em dados
 
-###
+### Uniformidade
+
+Grandezas físicas podem ser mensuradas em diversas unidades de medida e precisamos que todos os dados estejam em uma mesma escala para evitar distorções nas análises como, por exemplo, comparar temperatura em °C e °F.
+
+```python
+temperatures = pd.read_csv('temperature.csv') 
+temperatures.head()
+
+    Date        Temperature 
+0   03.03.19    14.0 
+1   04.03.19    15.0 
+2   05.03.19    18.0 
+3   06.03.19    16.0 
+4   07.03.19    62.6
+
+# Import matplotlib
+import matplotlib.pyplot as plt
+# Create scatter plot
+plt.scatter(x = 'Date', y = 'Temperature', data = temperatures)
+# Create title, xlabel and ylabel
+plt.title('Temperature in Celsius March 2019 - NYC')
+plt.xlabel('Dates')
+plt.ylabel('Temperature in Celsius')
+# Show plot
+plt.show()
+```
+<img src = "image01.jpg">
+
+Pelo gráfico plotado, podemos notar alguns valores de temperatura muito elevados para estarem em °C e podemos resolver este problema convertendo estes valores que, provavelmente estão em °F, para °C.
+
+```python
+# o valor arbitrado como limite o valor de temperatura 40°C
+temp_fah = temperatures.loc[temperatures['Temperature'] > 40, 'Temperature']
+temp_cels = (temp_fah - 32) * (5/9)
+temperatures.loc[temperatures['Temperature'] > 40, 'Temperature'] = temp_cels
+
+# Assert conversion is correct
+assert temperatures['Temperature'].max() < 40
+
+```
+**tratando dados de data**
+```python
+birthdays.head()
+
+    Birthday        First name  Last name
+0   27/27/19        Rowan       Nunez
+1   03-29-19        Brynn       Yang
+2   March 3rd, 2019 Sophia      Reilly
+3   24-03-19        Deacon      Prince
+4   06-03-19        Griffith    Neal
+
+```
+Podemos tratar os dados acima por meio do formato <code>datetime</code>, que reconhece automaticamente a maioria dos formatos.
+
+```python
+# Attempt to infer format of each date
+# Return NA for rows where conversion failed
+birthdays['Birthday'] = pd.to_datetime(birthdays['Birthday'],infer_datetime_format=True,errors = 'coerce')
+
+birthdays.head()
+
+    Birthday    First name  Last name
+0   NaT         Rowan       Nunez
+1   2019-03-29  Brynn       Yang
+2   2019-03-03  Sophia      Reilly
+3   2019-03-24  Deacon      Prince
+4   2019-06-03  Griffith    Neal
+
+# podemos alterar o formato exibido por meio de uma string
+birthdays['Birthday'] = birthdays['Birthday'].dt.strftime("%d-%m-%Y")
+birthdays.head()
+
+    Birthday    First name  Last name
+0   NaT         Rowan       Nunez
+1   29-03-2019  Brynn       Yang
+2   03-03-2019  Sophia      Reilly
+3   24-03-2019  Deacon      Prince
+4   03-06-2019  Griffith    Neal
+
+```
+Algumas vezes teremos dados com data de valor ambíguo : 2019-03-08 seria março ou agosto? Neste caso podemos :
+* converter para NA
+* deduzir o formato conforme a fonte dos dados 
+* deduzir o formato conforme outras entradas no mesmo dataframe
 
 ###
 
