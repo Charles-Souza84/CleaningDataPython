@@ -554,7 +554,27 @@ Algumas vezes teremos dados com data de valor ambíguo : 2019-03-08 seria março
 * deduzir o formato conforme a fonte dos dados 
 * deduzir o formato conforme outras entradas no mesmo dataframe
 
-###
+### Validação com campos cruzados
+
+É comum termos dados consolidados a partir de diversas fontes e devemos checar sua integridade. Utilizar múltiplos campos para checar se os dados estão coerentes é uma forma de fazer esta verificação.
+
+<img src = "image02.jpg">
+
+```python
+# exemplo para checar se o campo idade está corretamente preenchido
+import pandas as pd
+import datetime as dt
+# convertendo para datetime e obtendo a data de hoje
+users['Birthday'] = pd.to_datetime(users['Birthday'])
+today = dt.date.today()
+# para cada linha na coluna Birthday, calcula a diferença de ano
+age_manual = today.year - users['Birthday'].dt.year
+# encontrando as intâncias em que a idade está correta
+age_equ = age_manual == users['Age']
+# encontrando e filtrando as linhas com idade inconsistente
+inconsistent_age = users[~age_equ]
+consistent_age = users[age_equ]
+```
 
 ###
 ___
