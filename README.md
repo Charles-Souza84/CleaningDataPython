@@ -672,8 +672,6 @@ airquality_imputed.head()
 Date Temperature
 ```
 <img src = "img/image12.jpg">
-
-
 ___
 
 
