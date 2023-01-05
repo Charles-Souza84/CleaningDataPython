@@ -677,8 +677,79 @@ ___
 
 # Ligação de registro
 
-###
+### Comparando strings
 
+**minimum edit distance** - é uma forma sistemática de identificar o quão semelhantes são duas strings. Quanto menor o número de  operações (inserir novos caracteres, deletar caracteres, substituir caracteres e transpor caracteres consecutivos) realizadas em uma string para obtenção da outra, mais semelhantes elas são.
+
+Para comparação de strings podemos utilizar a função <code>WRatio</code> do pacote <code>thefuzz</code>, que retorna um valor de 0 a 100 sendo 100 o valor quando são exatamente iguais.
+
+```python
+# Lets us compare between two strings
+from thefuzz import fuzz
+# Compare reeding vs reading
+fuzz.WRatio('Reeding', 'Reading')
+
+86
+```
+
+```python
+# Partial string comparison
+fuzz.WRatio('Houston Rockets', 'Rockets')
+
+90
+```
+
+```python
+# Partial string comparison with different order
+fuzz.WRatio('Houston Rockets vs Los Angeles Lakers', 'Lakers vs Rockets')
+
+86
+```
+
+Podemos também comparar uma string com um array de strings utilizando a função <code>extract</code> que retorna uma tupla com três elementos :
+* a string checada sendo retornada
+* o score de similaridade
+* seu índice no array
+
+```python
+# Import process
+from thefuzz import process
+
+# Define string and array of possible matches
+string = "Houston Rockets vs Los Angeles Lakers"
+choices = pd.Series(['Rockets vs Lakers', 'Lakers vs Rockets','Houson vs Los Angeles', 'Heat vs Bulls'])
+process.extract(string, choices, limit = 2)
+```
+
+<code>saída</code> [('Rockets vs Lakers', 86, 0), ('Lakers vs Rockets', 86, 1)]
+
+Quando temos um campo categórico com muitas inconsistências podemos colapsar os valores incorretos utilizando _string similarity_. 
+
+```python
+# dataframe contendo erros de digitação de estados
+print(survey['state'].unique())
+```
+<img src = "img/image13.jpg">
+
+```python
+# nomes corretos dos estados
+categories
+```
+<img src = "img/image14.jpg">
+
+```python
+# para cada categoria correta 
+for state in categories['state']:
+    # encontrando combinações em potencial entre os estados corretos e os com erro de digitação
+    # o limite para a função abaixo é o tamanho do dataframe survey
+    matches = process.extract(state, survey['state'], limit = survey.shape[0]) 
+    # para cada combinação potencial em matches
+    for potential_match in matches:
+        # setando o score de similaridade
+        if potential_match[1] >= 80:
+            # substituindo o valor incorreto pelo valor categórico correto
+            survey.loc[survey['state'] == potential_match[0], 'state'] = state
+```
 ###
 
 ###
