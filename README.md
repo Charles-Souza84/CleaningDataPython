@@ -495,7 +495,7 @@ plt.ylabel('Temperature in Celsius')
 # Show plot
 plt.show()
 ```
-<img src = "image01.jpg">
+<img src = "img/image01.jpg">
 
 Pelo gráfico plotado, podemos notar alguns valores de temperatura muito elevados para estarem em °C e podemos resolver este problema convertendo estes valores que, provavelmente estão em °F, para °C.
 
@@ -558,7 +558,7 @@ Algumas vezes teremos dados com data de valor ambíguo : 2019-03-08 seria março
 
 É comum termos dados consolidados a partir de diversas fontes e devemos checar sua integridade. Utilizar múltiplos campos para checar se os dados estão coerentes é uma forma de fazer esta verificação.
 
-<img src = "image02.jpg">
+<img src = "img/image02.jpg">
 
 ```python
 # exemplo para checar se o campo idade está corretamente preenchido
@@ -576,8 +576,106 @@ inconsistent_age = users[~age_equ]
 consistent_age = users[age_equ]
 ```
 
-###
+### Integridade
+
+Dados faltantes é um dos mais comuns e importantes problemas de limpeza de dados. São normalmente representados por NA e NAN, mas podem ser arbitrariamente representados por 0 ou "." . 
+
+```python
+import pandas as pd
+airquality = pd.read_csv('airquality.csv')
+print(airquality)
+```
+<img src = "img/image03.jpg">
+
+```python
+# Return missing values
+airquality.isna()
+```
+<img src = "img/image04.jpg">
+
+```python
+# Get summary of missingness
+airquality.isna().sum()
+```
+<img src = "img/image05.jpg">
+
+O pacote <code>missingno</code> fornece ferramentais visuais úteis para visualização de dados faltantes ( missing data ). 
+
+```python
+import missingno as msno
+import matplotlib.pyplot as plt
+# Visualize missingness
+msno.matrix(airquality)
+plt.show()
+```
+<img src = "img/image06.jpg">
+
+A matriz acima exibe em linhas como estão distribuídos os dados faltantes no dataframe.
+
+Embora a distribuição de _missing data_ pareça aleatória, uma análise um pouco mais a fundo mostra que na verdade há um padrão.
+
+```python
+# Isolate missing and complete values aside
+missing = airquality[airquality['CO2'].isna()]
+complete = airquality[~airquality['CO2'].isna()]
+
+# Describe complete DataFramee
+complete.describe()
+```
+<img src = "img/image07.jpg">
+
+```python
+# Describe missing DataFramee
+missing.describe()
+```
+<img src = "img/image08.jpg">
+
+Pelas informações obtidas com o método <code>describe()</code> notamos que a ausência de valores para concentração de CO2 ocorre em baixas temperaturas, o que pode ser causado por uma falha de medição a baixas temperaturas. 
+
+Utilizando novamente os recursos do <code>missingno</code> podemos visualizar de forma mais clara:
+
+```python
+sorted_airquality = airquality.sort_values(by = 'Temperature')
+msno.matrix(sorted_airquality)
+plt.show()
+```
+<img src = "img/image09.jpg">
+
+**como tratar dados faltantes**
+* abordagens mais simples
+    * deletar dados faltantes
+    * alimentar com medidas estatísticas como média, mediana, moda...
+
+* abordagens mais complexas
+    * alimentar com alguma aproximação por algoritmo
+    * alimentar com dados gerados por modelos de _machine learning_
+
+```pthon
+airquality.head()
+```
+<img src = "img/image10.jpg">
+
+```python
+# Drop missing values
+airquality_dropped = airquality.dropna(subset = ['CO2'])
+airquality_dropped.head()
+```
+<img src = "img/image11.jpg">
+
+```python
+# replacing with statistical measures
+# fillna takes in a dictionary with columns as keys, and the imputed value as values
+
+co2_mean = airquality['CO2'].mean()
+airquality_imputed = airquality.fillna({'CO2': co2_mean})
+airquality_imputed.head()
+Date Temperature
+```
+<img src = "img/image12.jpg">
+
+
 ___
+
 
 # Ligação de registro
 
