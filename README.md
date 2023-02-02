@@ -750,7 +750,86 @@ for state in categories['state']:
             # substituindo o valor incorreto pelo valor categórico correto
             survey.loc[survey['state'] == potential_match[0], 'state'] = state
 ```
-###
+### Gerando pares
 
-###
+Quando trabalhamos com Dataframes grandes que podem gerar milhões ou até bilhões de combinações de pares, aplicamos o que é chamado de _blocking_ , que cria pares baseados em uma coluna em comum, reduzindo o número de pares possíveis. Para isto fazemos o import do pacote _recordlinkage_ :
 
+<img src = "img/image15.jpg">
+
+```python
+# Importando recordlinkage
+import recordlinkage
+
+# criando um objeto indexado que pode ser utilizado para gerar os pares
+indexer = recordlinkage.Index()
+
+# gerando pares blocked na coluna state
+indexer.block('state')
+pairs = indexer.index(census_A, census_B)
+
+print(pairs)
+```
+<img src = "img/image16.jpg">
+
+O objeto resultante é um objeto pandas multi indexado contendo pares de índices de linhas de ambos Dataframes.
+
+**comparando Dataframes**
+
+```python
+# gerando os pares
+pairs = indexer.index(census_A, census_B)
+# criando um objeto para comparação
+compare_cl = recordlinkage.Compare()
+# encontrando referências exatas para colunas date_of_birth e state
+compare_cl.exact('date_of_birth', 'date_of_birth', label='date_of_birth')
+compare_cl.exact('state', 'state', label='state')
+# encontrando referências similares para colunas surname e address_1 utilizando a string similarity
+compare_cl.string('surname', 'surname', threshold=0.85, label='surname')
+compare_cl.string('address_1', 'address_1', threshold=0.85, label='address_1')
+# encontrando as combinações
+potential_matches = compare_cl.compute(pairs, census_A, census_B)
+
+print(potencial_matches)
+```
+
+<img src = "img/image17.jpg">
+
+Para encontrar as combinações em potencial, nós filtramos as linhas nas quais a soma dos valores é maior do que um certo limiar.
+
+```python
+potential_matches[potential_matches.sum(axis = 1) => 2]
+```
+<img src = "img/image18.jpg">
+
+### Unindo Dataframes
+
+**combinações prováveis**
+```python
+matches = potential_matches[potential_matches.sum(axis =1) >=3]
+print(matches)
+```
+<img src = "img/image19.jpg">
+
+**obtendo os índices**
+```python
+matches.index
+```
+<img src = "img/image20.jpg">
+
+```python
+# obtendo índices de census_B somente
+duplicate_rows = matches.index.get_level_values(1)
+print(census_B_index)
+```
+
+<img src = "img/image21.jpg">
+
+**unindo os DataFrames**
+```python
+# encontrando duplicados em census_B
+census_B_duplicates = census_B[census_B.index.isin(duplicate_rows)]
+# encontrando novas linhas em census_B
+census_B_new = census_B[~census_B.index.isin(duplicate_rows)]
+# unindo os DataFrames
+full_census = census_A.append(census_B_new)
+```
